@@ -1,0 +1,134 @@
+.tag-manager-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 101;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 30px 80px rgba(20, 15, 5, 0.35);
+}
+
+.tag-manager-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.tag-manager-empty {
+  padding: 32px 28px;
+  font-size: 13px;
+  color: var(--ink-faint);
+  font-style: italic;
+  text-align: center;
+}
+
+.tag-manager-create {
+  display: flex;
+  gap: 8px;
+  padding: 14px 22px 8px;
+  align-items: center;
+}
+.tag-manager-create .tag-manager-input {
+  flex: 1;
+}
+.tag-manager-create .tag-action-btn {
+  flex-shrink: 0;
+}
+
+.tag-manager-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 28px;
+  border-bottom: 1px solid var(--rule-soft);
+  flex-wrap: wrap;
+}
+.tag-manager-row:last-child { border-bottom: none; }
+
+.tag-manager-name {
+  flex: 1;
+  font-size: 13px;
+  color: var(--ink);
+  min-width: 120px;
+}
+
+.tag-manager-input {
+  width: 100%;
+  padding: 4px 8px;
+  font-size: 13px;
+  font-family: var(--sans);
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  outline: none;
+  background: white;
+  color: var(--ink);
+}
+
+.tag-manager-count {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.tag-manager-actions {
+  display: flex;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.tag-action-btn {
+  padding: 3px 10px;
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--ink-soft);
+  font-family: var(--sans);
+  white-space: nowrap;
+  transition: all 0.1s;
+}
+.tag-action-btn:hover { border-color: var(--ink-faint); color: var(--ink); }
+.tag-action-btn.confirm { border-color: var(--cn); color: var(--cn); }
+.tag-action-btn.confirm:hover { background: var(--cn); color: var(--paper); }
+.tag-action-btn.danger { background: var(--accent); border-color: var(--accent); color: var(--paper); }
+.tag-action-btn.danger:hover { opacity: 0.85; }
+.tag-action-btn.danger-outline { border-color: var(--accent-soft); color: var(--accent); }
+.tag-action-btn.danger-outline:hover { background: var(--accent); color: var(--paper); border-color: var(--accent); }
+
+.tag-manager-merge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tag-manager-select {
+  padding: 3px 8px;
+  font-size: 12px;
+  font-family: var(--sans);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--paper);
+  color: var(--ink);
+  outline: none;
+  cursor: pointer;
+}
+.tag-manager-select:focus { border-color: var(--accent); }
+
+.tag-manager-delete-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--accent);
+  flex-wrap: wrap;
+}

@@ -1,0 +1,138 @@
+.paper-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.list-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--rule);
+  border-top: none;
+  background: var(--paper);
+  cursor: pointer;
+  transition: background 0.12s;
+  position: relative;
+}
+.list-row:first-child {
+  border-top: 1px solid var(--rule);
+  border-radius: 3px 3px 0 0;
+}
+.list-row:last-child {
+  border-radius: 0 0 3px 3px;
+}
+.list-row:only-child {
+  border-radius: 3px;
+}
+
+/* Left language color stripe */
+.list-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--rule);
+}
+.list-row.lang-en::before { background: var(--en); }
+.list-row.lang-jp::before { background: var(--jp); }
+.list-row.lang-zh::before { background: var(--cn); }
+
+.list-row:hover { background: var(--paper-2); }
+.list-row.list-private { background: #faf7ed; }
+.list-row.list-private:hover { background: #f5f0e0; }
+
+.list-badge {
+  flex-shrink: 0;
+}
+
+.list-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.list-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 2px;
+}
+
+.list-title {
+  font-family: var(--serif);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 480px;
+}
+
+.list-title-cn {
+  font-size: 11px;
+  color: var(--ink-faint);
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  flex-shrink: 1;
+}
+
+.list-trans {
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.list-lock {
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.list-meta {
+  font-family: var(--serif);
+  font-size: 11px;
+  font-style: italic;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.list-tags {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  max-width: 200px;
+}
+
+.list-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  width: 56px;
+}
+
+.list-status-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.list-date {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-faint);
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+}

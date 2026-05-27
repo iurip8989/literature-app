@@ -1,0 +1,282 @@
+.file-tab {
+  display: flex;
+  height: 100%;
+  gap: 0;
+}
+
+/* ── Sidebar ──────────────────────────────────────────────────────────── */
+
+.file-sidebar {
+  width: 160px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  padding: 16px 12px;
+  gap: 10px;
+}
+
+.file-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.file-empty-hint {
+  font-size: 12px;
+  color: var(--ink-faint);
+  padding: 8px 0;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.1s;
+}
+.file-item:hover { background: var(--paper-2); }
+.file-item.active {
+  background: var(--paper-2);
+  border-color: var(--rule);
+}
+
+.file-icon { font-size: 14px; flex-shrink: 0; }
+
+.file-name {
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--ink);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-size {
+  font-size: 10px;
+  color: var(--ink-faint);
+  flex-shrink: 0;
+}
+
+.file-local-badge {
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.file-del-btn {
+  background: transparent;
+  border: none;
+  color: var(--ink-faint);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.1s, color 0.1s;
+}
+.file-item:hover .file-del-btn { opacity: 1; }
+.file-del-btn:hover { color: var(--accent); }
+.file-del-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Upload actions ────────────────────────────────────────────────────── */
+
+.file-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.file-upload-btn {
+  width: 100%;
+  font-size: 12px;
+  padding: 7px 10px;
+}
+
+.file-private-note {
+  font-size: 10px;
+  color: var(--ink-faint);
+  text-align: center;
+}
+
+.file-upload-error {
+  font-size: 11px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 6px 8px;
+  border-radius: 3px;
+}
+
+/* ── Viewer panel ─────────────────────────────────────────────────────── */
+
+.file-viewer-panel {
+  flex: 1;
+  overflow: auto;                /* x: handles wide PDFs; y: page scrolling */
+  overscroll-behavior: contain;  /* stop wheel from escaping to background */
+  padding: 20px;
+}
+
+.file-viewer-empty {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
+/* ── PDF viewer ───────────────────────────────────────────────────────── */
+
+.pdf-viewer-wrap { display: flex; flex-direction: column; gap: 6px; }
+
+/* Zoom toolbar */
+.pdf-zoom-bar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.pdf-zoom-btn {
+  width: 26px;
+  height: 22px;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  border-radius: 2px;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--ink-soft);
+  font-family: var(--mono);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pdf-zoom-btn:hover { background: var(--paper-2); color: var(--ink); border-color: var(--ink-faint); }
+.pdf-zoom-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-faint);
+  min-width: 32px;
+  text-align: center;
+}
+.pdf-zoom-fit {
+  width: auto;
+  padding: 0 7px;
+  font-family: var(--sans);
+  font-size: 10px;
+}
+
+.pdf-progress {
+  font-size: 11px;
+  color: var(--ink-faint);
+  font-family: var(--mono);
+}
+
+.pdf-viewer { display: flex; flex-direction: column; gap: 6px; }
+
+/* Page wrapper: stacks canvas + textLayer at the PDF's natural CSS size */
+.pdf-page-wrapper {
+  position: relative;
+  display: block;
+}
+
+.pdf-page-canvas {
+  display: block;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+}
+
+/* ── PDF text layer (pdfjs-dist TextLayer overlay) ──────────────────────── */
+
+.textLayer {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  opacity: 1;
+  line-height: 1;
+  -webkit-text-size-adjust: none;
+     -moz-text-size-adjust: none;
+          text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  z-index: 2;
+
+  --min-font-size: 1;
+  --min-font-size-inv: 1;
+  --text-scale-factor: calc(var(--total-scale-factor, 1) * var(--min-font-size));
+}
+
+.textLayer :is(span, br) {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+.textLayer > :not(.markedContent),
+.textLayer .markedContent span:not(.markedContent) {
+  z-index: 1;
+  --font-height: 0;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  --scale-x: 1;
+  --rotate: 0deg;
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+
+.textLayer .markedContent { display: contents; }
+
+.textLayer ::selection      { background: rgba(0, 100, 255, 0.28); color: transparent; }
+.textLayer ::-moz-selection { background: rgba(0, 100, 255, 0.28); color: transparent; }
+
+.textLayer .endOfContent {
+  display: block;
+  position: absolute;
+  inset: 100% 0 0;
+  z-index: -1;
+  cursor: default;
+  -webkit-user-select: none;
+     -moz-user-select: none;
+          user-select: none;
+}
+
+/* ── DOCX viewer ──────────────────────────────────────────────────────── */
+
+.docx-viewer {
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ink);
+}
+.docx-viewer h1, .docx-viewer h2, .docx-viewer h3 {
+  font-family: var(--serif);
+  margin: 1em 0 0.4em;
+}
+.docx-viewer p { margin: 0.5em 0; }
+.docx-viewer table { border-collapse: collapse; width: 100%; }
+.docx-viewer td, .docx-viewer th {
+  border: 1px solid var(--rule);
+  padding: 4px 8px;
+}
+
+/* ── Shared ───────────────────────────────────────────────────────────── */
+
+.file-loading {
+  font-size: 13px;
+  color: var(--ink-faint);
+  padding: 20px 0;
+}
+
+.viewer-error {
+  font-size: 12px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 10px 14px;
+  border-radius: 3px;
+}
