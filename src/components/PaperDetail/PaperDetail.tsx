@@ -33,7 +33,7 @@ const STATUS_OPTIONS: { value: ReadingStatus; label: string }[] = [
 const WIDE_BREAKPOINT = 1024
 
 export default function PaperDetail({ paper: initialPaper, onClose }: Props) {
-  const { updatePaper, deletePaper, allTags, settings, updateSettings } = useAppContext()
+  const { updatePaper, deletePaper, allTags, settings } = useAppContext()
   const { githubPat: pat = '', githubUsername: username = '', githubRepo: repo = '' } = settings
   const [paper, setPaper] = useState(initialPaper)
   const [narrowTab, setNarrowTab] = useState<NarrowTab>('notes')
