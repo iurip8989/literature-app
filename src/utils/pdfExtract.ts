@@ -6,6 +6,23 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).href
 
+// Runtime assets copied by vite-plugin-static-copy into <base>/pdfjs/*.
+// import.meta.env.BASE_URL is "/" in dev and "/literature-app/" on GitHub
+// Pages, so these URLs resolve correctly in both environments. Required for
+// CJK CMaps, standard fonts, JBig2/JPEG2000 (wasm) decoding, and ICC profiles —
+// without them scanned / Japanese PDFs fail to render.
+const PDFJS_ASSET_BASE = import.meta.env.BASE_URL + 'pdfjs/'
+
+// Shared loader options so rendering (PdfViewer) and text extraction use the
+// same asset configuration.
+export const pdfDocOptions = {
+  cMapUrl: PDFJS_ASSET_BASE + 'cmaps/',
+  cMapPacked: true,
+  standardFontDataUrl: PDFJS_ASSET_BASE + 'standard_fonts/',
+  wasmUrl: PDFJS_ASSET_BASE + 'wasm/',
+  iccUrl: PDFJS_ASSET_BASE + 'iccs/',
+}
+
 export interface ExtractedInfo {
   title: string
   authors: string[]
@@ -452,7 +469,7 @@ function findArxivId(haystacks: string[], info: Record<string, unknown>): string
 //
 export async function extractPdfInfo(file: File): Promise<ExtractedInfo> {
   const arrayBuffer = await file.arrayBuffer()
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer, ...pdfDocOptions }).promise
 
   const meta = await pdf.getMetadata().catch(() => ({ info: {} }))
   const info = (meta.info ?? {}) as Record<string, string>
@@ -599,7 +616,7 @@ function truncateHeadTail(text: string, budget: number): string {
 
 export async function extractFullPdfText(file: File): Promise<FullTextResult> {
   const arrayBuffer = await file.arrayBuffer()
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer, ...pdfDocOptions }).promise
 
   const pages: string[] = []
   for (let i = 1; i <= pdf.numPages; i++) {

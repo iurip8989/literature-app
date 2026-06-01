@@ -47,11 +47,26 @@ export async function deleteSetting(key: string): Promise<void> {
 }
 
 export async function saveFileBlob(paperId: string, fileId: string, blob: Blob): Promise<void> {
+  // Never persist an empty blob — a 0-byte download is corrupt (e.g. the old
+  // Contents-API path that returned nothing for >1 MB files). Caching it would
+  // poison every future read. Skip the write and let the caller surface/retry.
+  if (blob.size === 0) {
+    console.warn('[saveFileBlob] 跳过写入 0 字节 blob，避免缓存坏数据', paperId, fileId)
+    return
+  }
   await db.fileBlobs.put({ paperId, fileId, blob })
 }
 
 export async function getFileBlob(paperId: string, fileId: string): Promise<Blob | undefined> {
   const record = await db.fileBlobs.get([paperId, fileId])
+  // Self-heal stale corruption: a cached 0-byte blob (left by the old download
+  // path) is invalid. Drop it and report a miss so the caller re-fetches from
+  // GitHub — which now goes through the Git Blobs API for files >1 MB.
+  if (record && record.blob.size === 0) {
+    console.warn('[getFileBlob] 检测到 0 字节坏缓存，删除以触发重新下载', paperId, fileId)
+    await db.fileBlobs.delete([paperId, fileId])
+    return undefined
+  }
   return record?.blob
 }
 

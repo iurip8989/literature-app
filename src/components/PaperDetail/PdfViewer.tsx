@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { pdfjsLib } from '../../utils/pdfExtract'
+import { pdfjsLib, pdfDocOptions } from '../../utils/pdfExtract'
 import { TextLayer } from 'pdfjs-dist'
 
 interface Props {
@@ -34,7 +34,7 @@ export default function PdfViewer({ blob }: Props) {
     container.innerHTML = ''
 
     blob.arrayBuffer().then(buf =>
-      pdfjsLib.getDocument({ data: buf }).promise
+      pdfjsLib.getDocument({ data: buf, ...pdfDocOptions }).promise
     ).then(async pdf => {
       if (cancelled) return
       for (let i = 1; i <= pdf.numPages; i++) {

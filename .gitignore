@@ -10,6 +10,9 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+
+# pdfjs-dist runtime assets, regenerated from node_modules by vite.config.ts
+public/pdfjs
 *.local
 .env
 .env.*

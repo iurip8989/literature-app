@@ -21,7 +21,7 @@ function fromBase64(b64: string): string {
 }
 
 function fromBase64Binary(b64: string): ArrayBuffer {
-  const binary = atob(b64.replace(/\n/g, ''))
+  const binary = atob(b64.replace(/\s/g, ''))
   const bytes = new Uint8Array(binary.length)
   for (let i = 0; i < binary.length; i++) {
     bytes[i] = binary.charCodeAt(i)
@@ -201,7 +201,19 @@ export async function fetchFileContent(
 ): Promise<{ content: ArrayBuffer; sha: string }> {
   const octokit = createOctokit(pat)
   const res = await octokit.repos.getContent({ owner: username, repo, path })
-  const file = res.data as { content: string; sha: string }
+  const file = res.data as { content?: string; encoding?: string; sha: string }
+
+  // The Contents API only inlines `content` for files up to 1 MB; for larger
+  // files it returns an empty body with `encoding: "none"`. Fall back to the
+  // Git Blobs API, which returns base64 content for any blob up to 100 MB.
+  if (!file.content || file.encoding === 'none') {
+    const blob = await octokit.git.getBlob({ owner: username, repo, file_sha: file.sha })
+    return {
+      content: fromBase64Binary(blob.data.content),
+      sha: file.sha,
+    }
+  }
+
   return {
     content: fromBase64Binary(file.content),
     sha: file.sha,
