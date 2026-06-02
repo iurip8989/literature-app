@@ -11,6 +11,7 @@ import PaperDetail from './components/PaperDetail/PaperDetail'
 import TagManagerDialog from './components/Tags/TagManagerDialog'
 import AiSettingsDialog from './components/Settings/AiSettingsDialog'
 import type { Paper, Settings } from './types'
+import type { SortField } from './utils/sorting'
 import './components/Layout/MainLayout.css'
 
 export default function App() {
@@ -52,8 +53,12 @@ const ADDED_WITHIN_LABELS: Record<string, string> = {
   month: '本月', '3months': '最近 3 个月', '6months': '最近半年', year: '最近一年',
 }
 
+const SORT_FIELD_LABELS: Record<SortField, string> = {
+  addedAt: '添加时间', year: '年份', title: '标题',
+}
+
 function MainLayout({ onDisconnect }: { onDisconnect: () => Promise<void> }) {
-  const { state, filteredPapers, setFilter, clearFilters } = useAppContext()
+  const { state, filteredPapers, sort, setSort, setFilter, clearFilters } = useAppContext()
   const [view, setView] = useState<ViewType>('cards')
   const [showAdd, setShowAdd] = useState(false)
   const [showTagManager, setShowTagManager] = useState(false)
@@ -128,6 +133,27 @@ function MainLayout({ onDisconnect }: { onDisconnect: () => Promise<void> }) {
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div className="sort-control" title="排序方式">
+                <span className="sort-label">排序</span>
+                <div className="view-toggle">
+                  {(['addedAt', 'year', 'title'] as SortField[]).map(field => (
+                    <button
+                      key={field}
+                      className={`view-btn ${sort.field === field ? 'active' : ''}`}
+                      onClick={() => setSort({ field, direction: sort.direction })}
+                    >
+                      {SORT_FIELD_LABELS[field]}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  className="sort-dir-btn"
+                  onClick={() => setSort({ field: sort.field, direction: sort.direction === 'asc' ? 'desc' : 'asc' })}
+                  title={sort.direction === 'asc' ? '升序（点击切换为降序）' : '降序（点击切换为升序）'}
+                >
+                  {sort.direction === 'asc' ? '▲' : '▼'}
+                </button>
+              </div>
               <div className="view-toggle">
                 <button className={`view-btn ${view === 'cards' ? 'active' : ''}`} onClick={() => setView('cards')}>卡片</button>
                 <button className={`view-btn ${view === 'list' ? 'active' : ''}`} onClick={() => setView('list')}>列表</button>

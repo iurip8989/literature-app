@@ -303,8 +303,33 @@ body {
   color: var(--ink-faint);
   transition: all 0.1s;
 }
-.view-btn:hover { color: var(--ink); background: var(--paper-2); }
+.view-btn:hover:not(:disabled) { color: var(--ink); background: var(--paper-2); }
 .view-btn.active { background: var(--ink); color: var(--paper); }
+
+/* Sort control — field group + direction toggle */
+.sort-control {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.sort-label {
+  font-family: var(--sans);
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+.sort-dir-btn {
+  width: 26px;
+  height: 27px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: transparent;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--ink-faint);
+  transition: all 0.1s;
+}
+.sort-dir-btn:hover { color: var(--ink); background: var(--paper-2); border-color: var(--ink-faint); }
 
 /* Active filter chips */
 .active-filters {

@@ -122,6 +122,11 @@ export default function PaperDetail({ paper: initialPaper, onClose }: Props) {
 
   const hasTranslation = paper.files.some(f => f.type === 'translation')
 
+  // Active original file — shared by the original tab's viewer and the
+  // translation tab's side-by-side comparison pane.
+  const originalFiles = paper.files.filter(f => f.type !== 'translation')
+  const activeOriginalFile = originalFiles.find(f => f.id === activeFileId) ?? originalFiles[0] ?? null
+
   const handleDelete = async () => {
     await deletePaper(paper.id)
     onClose()
@@ -203,7 +208,7 @@ export default function PaperDetail({ paper: initialPaper, onClose }: Props) {
         </div>
 
         {/* Body */}
-        <div className={`detail-body${isWide && wideTab === null ? ' detail-body--split' : ''}`}>
+        <div className={`detail-body${isWide && (wideTab === null || wideTab === 'translation') ? ' detail-body--split' : ''}`}>
           {isWide ? (
             wideTab === null ? (
               // ── 3-column split: [Info+AI] | [PDF] | [Notes] ──────────────
@@ -223,8 +228,9 @@ export default function PaperDetail({ paper: initialPaper, onClose }: Props) {
                 <div className="split-mid">
                   <PdfMidPanel
                     paper={paper}
-                    fileId={activeFileId}
+                    file={activeOriginalFile}
                     settings={settings}
+                    emptyHint="在左侧上传原文文件后，可在这里阅读"
                   />
                 </div>
                 <div className="split-col-divider" />
@@ -233,7 +239,33 @@ export default function PaperDetail({ paper: initialPaper, onClose }: Props) {
                 </div>
               </div>
             ) : wideTab === 'translation' ? (
-              <FileTab paper={paper} fileType="translation" onUpdate={save} />
+              // ── 3-column: [Info+AI] | [Translation viewer / compare] | [Notes] ──
+              <div className="split-body">
+                <div className="split-left">
+                  <InfoPanel
+                    paper={paper}
+                    allTags={allTags}
+                    settings={settings}
+                    activeFileId={activeFileId}
+                    onChange={save}
+                    onPrivacyChange={handlePrivacyToggle}
+                    onActiveFileChange={setActiveFileId}
+                  />
+                </div>
+                <div className="split-col-divider" />
+                <div className="split-mid split-mid--flush">
+                  <TranslationMidPanel
+                    paper={paper}
+                    settings={settings}
+                    onChange={save}
+                    originalFile={activeOriginalFile}
+                  />
+                </div>
+                <div className="split-col-divider" />
+                <div className="split-right">
+                  <NotesPanel paper={paper} onChange={save} saveStatus={saveStatus} />
+                </div>
+              </div>
             ) : (
               <div className="placeholder-tab">
                 <div className="placeholder-icon">⬡</div>
@@ -512,30 +544,35 @@ function InfoField({
 
 // ── Middle panel: PDF viewer ─────────────────────────────────────────────────
 
+// Renders a single file (PDF/DOCX) with the shared, fixed pipeline:
+// useFileContent → fetchFileContent (Contents/Blobs API) → cache self-heal, and
+// PdfViewer's built-in zoom toolbar. Used by the original tab, the translation
+// viewer, and both panes of the side-by-side comparison — each instance has its
+// own independent zoom and scroll.
 function PdfMidPanel({
   paper,
-  fileId,
+  file,
   settings,
+  emptyHint = '在左侧上传文件后，可在这里阅读',
 }: {
   paper: Paper
-  fileId: string | null
+  file: PaperFile | null
   settings: Partial<Settings>
+  emptyHint?: string
 }) {
   const { githubPat: pat = '', githubUsername: username = '', githubRepo: repo = '' } = settings
-  const originalFiles = paper.files.filter(f => f.type !== 'translation')
-  const activeFile = originalFiles.find(f => f.id === fileId) ?? originalFiles[0] ?? null
 
   const { blob, loading, error } = useFileContent(
     paper.id,
-    activeFile?.id ?? '',
-    activeFile?.githubPath,
+    file?.id ?? '',
+    file?.githubPath,
     pat, username, repo,
   )
 
-  if (!activeFile) {
+  if (!file) {
     return (
       <div className="file-viewer-empty">
-        <span>在左侧上传原文文件后，可在这里阅读</span>
+        <span>{emptyHint}</span>
       </div>
     )
   }
@@ -545,10 +582,161 @@ function PdfMidPanel({
 
   return (
     <div className="pdf-mid-inner">
-      {activeFile.format === 'pdf' && <PdfViewer blob={blob} />}
-      {activeFile.format === 'docx' && <DocxViewer blob={blob} />}
-      {activeFile.format !== 'pdf' && activeFile.format !== 'docx' && (
-        <p className="viewer-error" style={{ margin: 16 }}>不支持预览此格式（{activeFile.format}）</p>
+      {file.format === 'pdf' && <PdfViewer blob={blob} />}
+      {file.format === 'docx' && <DocxViewer blob={blob} />}
+      {file.format !== 'pdf' && file.format !== 'docx' && (
+        <p className="viewer-error" style={{ margin: 16 }}>不支持预览此格式（{file.format}）</p>
+      )}
+    </div>
+  )
+}
+
+// ── Middle panel: Translation viewer, with optional original comparison ──────
+
+function TranslationMidPanel({
+  paper,
+  settings,
+  onChange,
+  originalFile,
+}: {
+  paper: Paper
+  settings: Partial<Settings>
+  onChange: (p: Paper) => void
+  originalFile: PaperFile | null
+}) {
+  const { githubPat: pat = '', githubUsername: username = '', githubRepo: repo = '' } = settings
+  const [compare, setCompare] = useState(false)
+  const [activeTransId, setActiveTransId] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const transFiles = paper.files.filter(f => f.type === 'translation')
+  const activeTrans = transFiles.find(f => f.id === activeTransId) ?? transFiles[0] ?? null
+  const canCompare = !!originalFile
+  const showCompare = compare && canCompare && !!activeTrans
+
+  const handleUpload = async (rawFile: File) => {
+    const format = getFileFormat(rawFile.name)
+    if (!format) { setUploadError('仅支持 PDF、DOCX、TXT、MD 格式'); return }
+    setUploading(true); setUploadError('')
+    const fileId = generateId()
+    const ext = rawFile.name.split('.').pop()!
+    const arrayBuffer = await rawFile.arrayBuffer()
+    const blob = new Blob([arrayBuffer], { type: rawFile.type })
+    await saveFileBlob(paper.id, fileId, blob)
+    let githubPath: string | undefined, githubSha: string | undefined
+    if (!paper.isPrivate && pat && username && repo) {
+      try {
+        const path = githubFilePath('translation' as FileType, paper.id, fileId, ext)
+        const sha = await uploadPaperFile(pat, username, repo, path, arrayBuffer, `upload: ${rawFile.name}`)
+        githubPath = path; githubSha = sha
+      } catch (err) {
+        setUploadError(`GitHub 上传失败：${(err as Error).message}`)
+      }
+    }
+    const paperFile: PaperFile = {
+      id: fileId, type: 'translation', filename: rawFile.name,
+      githubPath, githubSha, format, size: rawFile.size, addedAt: now(),
+    }
+    onChange({ ...paper, files: [...paper.files, paperFile] })
+    setActiveTransId(fileId)
+    setUploading(false)
+  }
+
+  const handleDelete = async (pf: PaperFile) => {
+    setDeletingId(pf.id)
+    if (pf.githubPath && pf.githubSha && pat && username && repo) {
+      try { await deleteFile(pat, username, repo, pf.githubPath, pf.githubSha, `delete: ${pf.filename}`) }
+      catch { /* ignore */ }
+    }
+    await deleteFileBlob(paper.id, pf.id)
+    onChange({ ...paper, files: paper.files.filter(f => f.id !== pf.id) })
+    if (activeTransId === pf.id) setActiveTransId(null)
+    setDeletingId(null)
+  }
+
+  return (
+    <div className="trans-mid">
+      {/* Single hidden input shared by every upload button below */}
+      <input ref={fileInputRef} type="file" accept=".pdf,.docx,.txt,.md" style={{ display: 'none' }}
+        onChange={e => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = '' }} />
+
+      <div className="trans-mid-head">
+        <button
+          className={`compare-btn ${showCompare ? 'active' : ''}`}
+          onClick={() => setCompare(c => !c)}
+          disabled={!canCompare || !activeTrans}
+          title={!canCompare ? '暂无原文 PDF' : !activeTrans ? '请先上传中文译本' : ''}
+        >
+          {showCompare ? '收起原文' : '⇄ 对照原文'}
+        </button>
+        {!canCompare && <span className="trans-hint-inline">暂无原文</span>}
+
+        <div className="trans-mid-head-right">
+          {transFiles.length > 1 && (
+            <select
+              className="edit-input trans-file-select"
+              value={activeTrans?.id ?? ''}
+              onChange={e => setActiveTransId(e.target.value)}
+            >
+              {transFiles.map(f => <option key={f.id} value={f.id}>{f.filename}</option>)}
+            </select>
+          )}
+          {transFiles.length > 0 && (
+            <button className="btn-secondary trans-upload-btn"
+              onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+              {uploading ? '上传中…' : '＋ 上传译本'}
+            </button>
+          )}
+          {activeTrans && (
+            <button className="trans-del-btn" title="删除当前译本"
+              onClick={() => handleDelete(activeTrans)} disabled={deletingId === activeTrans.id}>
+              {deletingId === activeTrans.id ? '…' : '✕'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {uploadError && <p className="file-upload-error" style={{ margin: '6px 12px 0' }}>{uploadError}</p>}
+
+      {showCompare ? (
+        <div className="trans-mid-body trans-mid-body--compare">
+          <div className="trans-pane">
+            <div className="trans-pane-label">原文</div>
+            <div className="trans-view">
+              <PdfMidPanel paper={paper} file={originalFile} settings={settings} emptyHint="暂无原文 PDF" />
+            </div>
+          </div>
+          <div className="split-col-divider" />
+          <div className="trans-pane">
+            <div className="trans-pane-label">中文译本</div>
+            <div className="trans-view">
+              <PdfMidPanel paper={paper} file={activeTrans} settings={settings} emptyHint="暂无译本" />
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="trans-mid-body">
+          <div className="trans-view">
+            {activeTrans ? (
+              <PdfMidPanel paper={paper} file={activeTrans} settings={settings} emptyHint="暂无译本" />
+            ) : (
+              <div className="trans-empty">
+                <div className="trans-empty-icon">⇌</div>
+                <div className="trans-empty-title">还没有中文译本</div>
+                <p className="trans-empty-desc">
+                  上传该文献的中文译本（PDF / DOCX），即可在这里阅读，并展开与原文对照。
+                </p>
+                <button className="btn-secondary" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+                  {uploading ? '上传中…' : '＋ 上传中文译本'}
+                </button>
+                {paper.isPrivate && <p className="file-private-note">🔒 仅本地，不上传 GitHub</p>}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   )

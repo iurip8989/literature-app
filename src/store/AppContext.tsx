@@ -1,5 +1,5 @@
 import {
-  createContext, useContext, useReducer, useEffect, useRef, useCallback, useMemo,
+  createContext, useContext, useReducer, useEffect, useRef, useCallback, useMemo, useState,
   type ReactNode,
 } from 'react'
 import type { Paper, Tag, FilterState, SyncStatus, Settings } from '../types'
@@ -9,6 +9,9 @@ import {
 } from './db'
 import { fetchMetadata, pushMetadata, deleteFile } from '../utils/github'
 import { now } from '../utils/helpers'
+import {
+  type SortState, loadSortPref, saveSortPref, sortPapers,
+} from '../utils/sorting'
 
 // ── State ──────────────────────────────────────────────────────────────────────
 
@@ -106,7 +109,9 @@ interface AppContextValue {
   state: AppState
   settings: Partial<Settings>
   updateSettings: (partial: Partial<Settings>) => Promise<void>
-  filteredPapers: Paper[]
+  filteredPapers: Paper[]                   // filtered AND sorted, ready to render
+  sort: SortState
+  setSort: (sort: SortState) => void
   allTags: string[]                         // union of tag records and tags used by any paper
   tagCount: (name: string) => number        // # of papers using a given tag
   addPaper: (paper: Paper) => Promise<void>
@@ -138,6 +143,15 @@ interface AppProviderProps {
 
 export function AppProvider({ settings, updateSettings, children }: AppProviderProps) {
   const [state, dispatch] = useReducer(reducer, initialState)
+
+  // Local-only view ordering. Lives outside the reducer (and outside the synced
+  // settings) because it's a per-browser display preference persisted to
+  // localStorage — it never touches paper data or GitHub.
+  const [sort, setSortState] = useState<SortState>(() => loadSortPref())
+  const setSort = useCallback((next: SortState) => {
+    setSortState(next)
+    saveSortPref(next)
+  }, [])
 
   const pat = settings.githubPat!
   const username = settings.githubUsername!
@@ -359,9 +373,11 @@ export function AppProvider({ settings, updateSettings, children }: AppProviderP
     })
   }, [state.papers, state.tagRecords, tagCountsMap])
 
+  // Filter first, then sort. Sorting is applied to the filtered subset so the
+  // two features compose cleanly (filters + active sort both take effect).
   const filteredPapers = useMemo(() => {
     const { language, status, tag, year, addedWithin, hasTranslation, searchQuery } = state.filters
-    return state.papers.filter(p => {
+    const filtered = state.papers.filter(p => {
       if (language !== 'all' && p.language !== language) return false
       if (status && p.status !== status) return false
       if (tag && !p.tags.includes(tag)) return false
@@ -380,10 +396,11 @@ export function AppProvider({ settings, updateSettings, children }: AppProviderP
       }
       return true
     })
-  }, [state.papers, state.filters])
+    return sortPapers(filtered, sort)
+  }, [state.papers, state.filters, sort])
 
   const value: AppContextValue = {
-    state, settings, updateSettings, filteredPapers, allTags, tagCount,
+    state, settings, updateSettings, filteredPapers, sort, setSort, allTags, tagCount,
     addPaper, updatePaper, batchUpdatePapers, deletePaper,
     createTag, deleteTag,
     setFilter, clearFilters, forceSync,

@@ -15,10 +15,12 @@
   box-shadow: 0 30px 80px rgba(20, 15, 5, 0.4);
 }
 
-/* Wide split mode: expand to nearly full viewport */
+/* Wide split mode: expand to nearly full viewport. No fixed px cap, so large
+   external monitors are used fully; ~2.5vw margin each side (centered via the
+   base rule's translateX(-50%)). On laptops 95vw ≈ what 96vw gave before. */
 .detail-modal--wide {
-  max-width: min(1440px, 96vw);
-  width: 96vw;
+  max-width: 95vw;
+  width: 95vw;
   top: 20px;
   /* Explicit height (not just max-height) is required so that flex: 1 children
      get a definite cross-axis size and overflow-y: auto actually triggers.
@@ -285,6 +287,122 @@
 .pdf-mid-inner {
   height: 100%;
 }
+
+/* ── Translation middle panel (default + compare) ─────────────────────────── */
+
+/* When the middle column hosts the translation panel it manages its own
+   padding/scroll, so strip the split-mid defaults. */
+.split-mid--flush {
+  padding: 0;
+  overflow: hidden;
+}
+
+.trans-mid {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.trans-mid-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--rule);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.trans-mid-head-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.compare-btn {
+  padding: 5px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--paper);
+  font-family: var(--sans);
+  font-size: 11px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.1s;
+}
+.compare-btn:hover:not(:disabled) { background: var(--paper-2); color: var(--ink); border-color: var(--ink-faint); }
+.compare-btn.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.compare-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.trans-hint-inline { font-size: 11px; color: var(--ink-faint); }
+
+.trans-file-select { font-size: 11px !important; padding: 3px 6px !important; max-width: 160px; }
+.trans-upload-btn { padding: 5px 10px !important; font-size: 11px !important; }
+
+.trans-del-btn {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--paper);
+  color: var(--ink-faint);
+  font-size: 11px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.trans-del-btn:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
+.trans-del-btn:disabled { opacity: 0.5; cursor: default; }
+
+.trans-mid-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+/* Side-by-side comparison: original | translation, each scrolls/zooms alone */
+.trans-pane {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.trans-pane-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-faint);
+  padding: 5px 12px;
+  border-bottom: 1px solid var(--rule-soft);
+  flex-shrink: 0;
+}
+.trans-view {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 16px;
+}
+
+/* Empty state — no translation uploaded yet */
+.trans-empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  color: var(--ink-faint);
+  padding: 20px;
+}
+.trans-empty-icon { font-size: 30px; opacity: 0.5; }
+.trans-empty-title { font-size: 14px; color: var(--ink-soft); }
+.trans-empty-desc { font-size: 12px; max-width: 320px; line-height: 1.6; margin: 0; }
 
 /* Placeholder tab */
 .placeholder-tab {
