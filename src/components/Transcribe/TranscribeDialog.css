@@ -1,0 +1,172 @@
+/* ─── 音频转写对话框 ───────────────────────────────────────────────────────── */
+
+.transcribe-dialog {
+  width: min(680px, calc(100vw - 48px));
+}
+
+.transcribe-warn {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 4px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+}
+
+.transcribe-warn a { color: var(--accent); }
+
+.transcribe-link {
+  background: none;
+  border: none;
+  padding: 0 2px;
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.transcribe-drop {
+  border: 1.5px dashed var(--rule);
+  border-radius: 6px;
+  padding: 26px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.transcribe-drop:hover,
+.transcribe-drop.drag-over {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+}
+
+.transcribe-drop.has-file {
+  border-style: solid;
+  padding: 16px;
+}
+
+.transcribe-drop-hint {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
+.transcribe-drop-sub {
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+.transcribe-file-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.transcribe-file-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  word-break: break-all;
+}
+
+.transcribe-file-meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+.transcribe-check {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--ink);
+  cursor: pointer;
+  user-select: none;
+  padding-top: 8px;
+}
+
+.transcribe-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.transcribe-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--rule);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: transcribe-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes transcribe-spin {
+  to { transform: rotate(360deg); }
+}
+
+.transcribe-error {
+  margin-top: 14px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #b03a2e;
+  background: rgba(176, 58, 46, 0.07);
+  border: 1px solid rgba(176, 58, 46, 0.25);
+  border-radius: 4px;
+  padding: 10px 12px;
+}
+
+.transcribe-result {
+  margin-top: 16px;
+}
+
+.transcribe-result-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin-bottom: 8px;
+}
+
+.transcribe-mini-btn {
+  font-size: 11px;
+  padding: 4px 10px;
+}
+
+.transcribe-text {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--ink);
+  background: var(--paper, #fff);
+}
+
+.transcribe-text p {
+  margin: 0 0 10px;
+}
+
+.transcribe-text p:last-child {
+  margin-bottom: 0;
+}
+
+.transcribe-seg-meta {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--accent);
+  margin-right: 4px;
+}

@@ -19,14 +19,17 @@ export default function AiSettingsDialog({ onClose }: Props) {
   // would never reach the rest of the app until reload). See bug fix note.
   const { settings, updateSettings } = useAppContext()
   const [apiKey, setApiKey] = useState(settings.claudeApiKey ?? '')
+  const [elevenKey, setElevenKey] = useState(settings.elevenLabsApiKey ?? '')
   const [model, setModel] = useState(settings.aiSummaryModel ?? DEFAULT_SUMMARY_MODEL)
   const [showKey, setShowKey] = useState(false)
+  const [showElevenKey, setShowElevenKey] = useState(false)
   const [saving, setSaving] = useState(false)
 
   const handleSave = async () => {
     setSaving(true)
     await updateSettings({
       claudeApiKey: apiKey.trim() || undefined,
+      elevenLabsApiKey: elevenKey.trim() || undefined,
       aiSummaryModel: model,
     })
     setSaving(false)
@@ -74,6 +77,41 @@ export default function AiSettingsDialog({ onClose }: Props) {
                 在 <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer"
                   style={{ color: 'var(--accent)' }}>console.anthropic.com</a> 获取你的 API Key。
                 保存在本地 IndexedDB，不会上传到 GitHub。
+              </p>
+            </div>
+          </div>
+
+          <div className="field-row">
+            <div className="field field-grow">
+              <label>ElevenLabs API Key（音频转写）</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  className="field-input"
+                  type={showElevenKey ? 'text' : 'password'}
+                  placeholder="xi-…（可选）"
+                  value={elevenKey}
+                  onChange={e => setElevenKey(e.target.value)}
+                  style={{ paddingRight: 56 }}
+                  autoComplete="off"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowElevenKey(v => !v)}
+                  style={{
+                    position: 'absolute', right: 6, top: 6,
+                    fontFamily: 'var(--mono)', fontSize: 10,
+                    background: 'transparent', border: '1px solid var(--rule)',
+                    borderRadius: 3, padding: '3px 8px',
+                    color: 'var(--ink-faint)', cursor: 'pointer',
+                  }}
+                >
+                  {showElevenKey ? '隐藏' : '显示'}
+                </button>
+              </div>
+              <p style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 6, lineHeight: 1.5 }}>
+                用于「音频转写」功能（Scribe v2，日/中/英）。在 <a href="https://elevenlabs.io/app/settings/api-keys" target="_blank" rel="noreferrer"
+                  style={{ color: 'var(--accent)' }}>elevenlabs.io</a> 获取，免费计划每月含约 2.5 小时转写额度。
+                同样只保存在本地 IndexedDB。
               </p>
             </div>
           </div>

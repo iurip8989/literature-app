@@ -10,6 +10,7 @@ import AddPaperDialog from './components/AddPaper/AddPaperDialog'
 import PaperDetail from './components/PaperDetail/PaperDetail'
 import TagManagerDialog from './components/Tags/TagManagerDialog'
 import AiSettingsDialog from './components/Settings/AiSettingsDialog'
+import TranscribeDialog from './components/Transcribe/TranscribeDialog'
 import type { Paper, Settings } from './types'
 import type { SortField } from './utils/sorting'
 import './components/Layout/MainLayout.css'
@@ -63,6 +64,7 @@ function MainLayout({ onDisconnect }: { onDisconnect: () => Promise<void> }) {
   const [showAdd, setShowAdd] = useState(false)
   const [showTagManager, setShowTagManager] = useState(false)
   const [showAiSettings, setShowAiSettings] = useState(false)
+  const [showTranscribe, setShowTranscribe] = useState(false)
   const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null)
 
   if (state.initState === 'loading') {
@@ -116,7 +118,7 @@ function MainLayout({ onDisconnect }: { onDisconnect: () => Promise<void> }) {
 
   return (
     <div className="app">
-      <TopBar onAddClick={() => setShowAdd(true)} />
+      <TopBar onAddClick={() => setShowAdd(true)} onTranscribeClick={() => setShowTranscribe(true)} />
 
       <div className={`body${selectedPaper ? ' detail-open' : ''}`}>
         <Sidebar onOpenTagManager={() => setShowTagManager(true)} />
@@ -220,6 +222,12 @@ function MainLayout({ onDisconnect }: { onDisconnect: () => Promise<void> }) {
       {showAdd && <AddPaperDialog onClose={() => setShowAdd(false)} />}
       {showTagManager && <TagManagerDialog onClose={() => setShowTagManager(false)} />}
       {showAiSettings && <AiSettingsDialog onClose={() => setShowAiSettings(false)} />}
+      {showTranscribe && (
+        <TranscribeDialog
+          onClose={() => setShowTranscribe(false)}
+          onOpenSettings={() => { setShowTranscribe(false); setShowAiSettings(true) }}
+        />
+      )}
       {selectedPaper && (
         <PaperDetail paper={selectedPaper} onClose={() => setSelectedPaper(null)} />
       )}

@@ -3,6 +3,7 @@ import type { SyncStatus } from '../../types'
 
 interface Props {
   onAddClick: () => void
+  onTranscribeClick: () => void
 }
 
 const syncLabels: Record<SyncStatus, string> = {
@@ -13,7 +14,7 @@ const syncLabels: Record<SyncStatus, string> = {
   error: '同步失败',
 }
 
-export default function TopBar({ onAddClick }: Props) {
+export default function TopBar({ onAddClick, onTranscribeClick }: Props) {
   const { state, setFilter, forceSync } = useAppContext()
   const { syncStatus, filters } = state
 
@@ -42,6 +43,15 @@ export default function TopBar({ onAddClick }: Props) {
         >
           <span className={`sync-dot ${syncStatus}`} />
           {syncLabels[syncStatus]}
+        </button>
+
+        <button
+          className="sync-pill"
+          onClick={onTranscribeClick}
+          title="上传音频/视频文件，转写为文字（日/中/英）"
+        >
+          <span style={{ fontSize: 12, lineHeight: 1 }}>♫</span>
+          音频转写
         </button>
 
         <button className="add-btn" onClick={onAddClick}>

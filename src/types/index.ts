@@ -78,6 +78,7 @@ export type ViewType = 'cards' | 'list' | 'graph';
 
 export interface Settings {
   claudeApiKey?: string;
+  elevenLabsApiKey?: string;     // 音频转写（ElevenLabs Scribe）
   rememberApiKey: boolean;
 
   githubPat?: string;            // Personal Access Token（明文存储于本地 IndexedDB，未加密 — 见需求文档 §9 备忘）
