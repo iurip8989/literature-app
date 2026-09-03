@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie'
-import type { Paper, Tag, SyncState } from '../types'
+import type { Paper, Tag, SyncState, TranscriptRecord } from '../types'
 
 interface SettingRecord {
   key: string
@@ -18,6 +18,7 @@ export class LiteratureDB extends Dexie {
   settings!: Table<SettingRecord>
   syncStates!: Table<SyncState>
   fileBlobs!: Table<FileBlobRecord>
+  transcripts!: Table<TranscriptRecord>
 
   constructor() {
     super('literature-app')
@@ -27,6 +28,10 @@ export class LiteratureDB extends Dexie {
       settings: 'key',
       syncStates: 'paperId',
       fileBlobs: '[paperId+fileId]',
+    })
+    // v2：音频转写记录（仅本地，不同步到 GitHub）
+    this.version(2).stores({
+      transcripts: 'id, createdAt, updatedAt',
     })
   }
 }
@@ -76,6 +81,36 @@ export async function deleteFileBlob(paperId: string, fileId: string): Promise<v
 
 export async function deleteAllFileBlobs(paperId: string): Promise<void> {
   await db.fileBlobs.filter(r => r.paperId === paperId).delete()
+}
+
+// ── Transcript CRUD（音频转写记录，仅本地） ──────────────────────────────────
+//
+// 转写结果连同音频一起存本地 IndexedDB，这样关掉网页后重新打开还能边听边改。
+// 音频可能很大（1 小时 mp3 约 60 MB），写入配额不足时降级为「只存文字」。
+
+export async function listTranscripts(): Promise<TranscriptRecord[]> {
+  const all = await db.transcripts.toArray()
+  return all.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+}
+
+export async function getTranscript(id: string): Promise<TranscriptRecord | undefined> {
+  return db.transcripts.get(id)
+}
+
+/** 保存转写记录。音频写入失败（多半是配额超限）时自动去掉音频重试。 */
+export async function saveTranscript(record: TranscriptRecord): Promise<'full' | 'no-audio'> {
+  try {
+    await db.transcripts.put(record)
+    return 'full'
+  } catch (err) {
+    console.warn('[saveTranscript] 完整写入失败，降级为不含音频', err)
+    await db.transcripts.put({ ...record, audioBlob: undefined })
+    return 'no-audio'
+  }
+}
+
+export async function deleteTranscript(id: string): Promise<void> {
+  await db.transcripts.delete(id)
 }
 
 // ── Tag CRUD ──────────────────────────────────────────────────────────────────

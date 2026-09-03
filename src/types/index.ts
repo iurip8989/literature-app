@@ -60,6 +60,30 @@ export interface Paper {
   updatedAt: string;             // ISO timestamp
 }
 
+// ─── Transcript（音频转写记录，仅本地存储） ────────────────────────────────────
+
+export interface TranscriptSegmentRecord {
+  id: string;
+  speakerId?: string;
+  start?: number;                // 秒
+  end?: number;                  // 秒
+  text: string;
+}
+
+export interface TranscriptRecord {
+  id: string;                    // UUID
+  title: string;                 // 默认取音频文件名（可改）
+  filename: string;              // 原始音频文件名
+  languageCode?: string;         // 识别出的语言
+  diarized: boolean;             // 是否开启了说话人分离
+  segments: TranscriptSegmentRecord[];
+  audioBlob?: Blob;              // 原始音频（配额不足时可能缺失）
+  audioType?: string;            // MIME type
+  durationSec?: number;
+  createdAt: string;             // ISO timestamp
+  updatedAt: string;             // ISO timestamp
+}
+
 // ─── Tag（标签库） ────────────────────────────────────────────────────────────
 
 export interface Tag {

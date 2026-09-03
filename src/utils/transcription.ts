@@ -31,10 +31,12 @@ interface SttResponse {
   words?: SttWord[]
 }
 
-/** 按说话人分组后的段落 */
+/** 一个可编辑、可跳转播放的段落 */
 export interface TranscriptSegment {
+  id: string
   speakerId?: string
   start?: number // 秒
+  end?: number   // 秒
   text: string
 }
 
@@ -99,45 +101,114 @@ export async function transcribeAudio(
 
   const data = (await res.json()) as SttResponse
   const diarized = !!opts.diarize
-  const segments = buildSegments(data.words ?? [], diarized)
 
   return {
     text: data.text ?? '',
     languageCode: data.language_code,
-    segments,
+    segments: buildSegments(data.words ?? [], data.text ?? '', diarized),
     diarized,
   }
 }
 
-/** 把逐词结果按说话人合并为段落（未开启说话人分离时返回空数组，直接用 text 即可） */
-function buildSegments(words: SttWord[], diarized: boolean): TranscriptSegment[] {
-  if (!diarized || words.length === 0) return []
+// ─── 分段 ─────────────────────────────────────────────────────────────────────
+
+/** 句尾标点（中日英通用），允许后接引号/括号 */
+const SENTENCE_END = /[。．.！!？?]["'」』）)\]】》]*$/
+/** 没有标点时的硬切长度，避免出现无法编辑的超长段落 */
+const MAX_SEGMENT_CHARS = 140
+/** 触发断句所需的最小长度，避免碎成一地 */
+const MIN_SEGMENT_CHARS = 2
+
+let segmentCounter = 0
+function nextSegmentId(): string {
+  segmentCounter += 1
+  return `seg_${Date.now().toString(36)}_${segmentCounter}`
+}
+
+/**
+ * 把逐词结果合并成句子级段落。
+ * 断句依据：说话人变化（开启分离时）> 句尾标点 > 超长硬切。
+ * 每段都带 start/end，供播放高亮与点击跳转使用。
+ */
+export function buildSegments(
+  words: SttWord[],
+  fallbackText: string,
+  diarized: boolean,
+): TranscriptSegment[] {
+  if (words.length === 0) {
+    return fallbackText.trim()
+      ? [{ id: nextSegmentId(), text: fallbackText.trim() }]
+      : []
+  }
 
   const segments: TranscriptSegment[] = []
   let current: TranscriptSegment | null = null
 
+  const flush = () => {
+    if (current && current.text.trim()) {
+      segments.push({ ...current, text: current.text.trim() })
+    }
+    current = null
+  }
+
   for (const w of words) {
     if (w.type === 'audio_event') continue
-    // spacing 归属当前段落
+
+    // 空白：并入当前段落，但不单独开新段
     if (w.type === 'spacing') {
-      if (current) current.text += w.text
+      if (current) {
+        current.text += w.text
+        // 超长时借空白处切开，保证不会切断单词
+        if (current.text.length >= MAX_SEGMENT_CHARS) flush()
+      }
       continue
     }
-    if (!current || (w.speaker_id && w.speaker_id !== current.speakerId)) {
-      if (current) segments.push(current)
-      current = { speakerId: w.speaker_id, start: w.start, text: w.text }
+
+    const speakerChanged =
+      diarized && current != null && !!w.speaker_id && w.speaker_id !== current.speakerId
+
+    if (!current || speakerChanged) {
+      flush()
+      current = {
+        id: nextSegmentId(),
+        speakerId: w.speaker_id,
+        start: w.start,
+        end: w.end,
+        text: w.text,
+      }
     } else {
       current.text += w.text
+      if (w.end != null) current.end = w.end
+    }
+
+    if (
+      current.text.trim().length >= MIN_SEGMENT_CHARS &&
+      SENTENCE_END.test(current.text.trimEnd())
+    ) {
+      flush()
     }
   }
-  if (current) segments.push(current)
+  flush()
 
-  return segments.map(s => ({ ...s, text: s.text.trim() })).filter(s => s.text)
+  return segments
 }
+
+/** 找出当前播放时间落在哪个段落，返回下标；找不到返回 -1 */
+export function findActiveSegment(segments: TranscriptSegment[], time: number): number {
+  for (let i = 0; i < segments.length; i++) {
+    const s = segments[i]
+    if (s.start == null) continue
+    const end = s.end ?? segments[i + 1]?.start ?? Infinity
+    if (time >= s.start && time < end) return i
+  }
+  return -1
+}
+
+// ─── 格式化 ───────────────────────────────────────────────────────────────────
 
 /** 秒 → "mm:ss" / "h:mm:ss" */
 export function formatTimestamp(seconds: number): string {
-  const s = Math.floor(seconds)
+  const s = Math.max(0, Math.floor(seconds))
   const h = Math.floor(s / 3600)
   const m = Math.floor((s % 3600) / 60)
   const sec = s % 60
@@ -145,22 +216,14 @@ export function formatTimestamp(seconds: number): string {
   return `${h > 0 ? h + ':' : ''}${mm}:${String(sec).padStart(2, '0')}`
 }
 
-/** 把结果格式化为可复制/下载的纯文本 */
-export function formatTranscript(result: TranscribeResult): string {
-  if (result.diarized && result.segments.length > 0) {
-    return result.segments
-      .map(s => {
-        const time = s.start != null ? `[${formatTimestamp(s.start)}] ` : ''
-        const speaker = s.speakerId ? `${s.speakerId.replace('speaker_', '说话人 ')}：` : ''
-        return `${time}${speaker}${s.text}`
-      })
-      .join('\n\n')
-  }
-  return result.text
+/** speaker_1 → 说话人 1 */
+export function speakerLabel(speakerId?: string): string {
+  if (!speakerId) return ''
+  return speakerId.replace(/^speaker[_-]?/i, '说话人 ')
 }
 
 /** 读取音频/视频文件时长（秒），失败返回 null */
-export function probeDuration(file: File): Promise<number | null> {
+export function probeDuration(file: Blob): Promise<number | null> {
   return new Promise(resolve => {
     const url = URL.createObjectURL(file)
     const el = document.createElement(file.type.startsWith('video/') ? 'video' : 'audio')
